@@ -1,0 +1,49 @@
+name: Triage & route issues
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  route:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.label.name == 'Team:Ingest' ||
+      github.event.label.name == 'Team:Experience' ||
+      github.event.label.name == 'Team:Admin' ||
+      github.event.label.name == 'Team:Developer' ||
+      github.event.label.name == 'Team:DocsEng' ||
+      github.event.label.name == 'Team:Platform' ||
+      github.event.label.name == 'Team:Projects' ||
+      github.event.label.name == 'Team:Search' ||
+      github.event.label.name == 'Team:Security'
+    env:
+      PROJECT_ID_MAP: |
+        {
+          "Team:Ingest":      "649",
+          "Team:Experience":  "1034",
+          "Team:Admin":       "1927",
+          "Team:Developer":   "726",
+          "Team:DocsEng":     "1625",
+          "Team:Platform":    "1232",
+          "Team:Projects":    "1415",
+          "Team:Search":      "726",
+          "Team:Security":    "1034"
+        }
+    steps:
+      - name: Remove needs-team label
+        uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          labels: needs-team
+
+      - name: Add issue to the right project
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e
+        with:
+          project-url: https://github.com/orgs/elastic/projects/${{ fromJson(env.PROJECT_ID_MAP)[github.event.label.name] }}
+          github-token: ${{ secrets.ADD_TO_BOARD_TOKEN }}
+          labeled: ${{ github.event.label.name }}
+          label-operator: OR
